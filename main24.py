@@ -1,27 +1,39 @@
 
-# Your main.py code here...
 from fastapi import FastAPI
 import pickle
 import numpy as np
+import os
+import uvicorn
+from pydantic import BaseModel
 
-# Load the trained Logistic Regression model
-with open("logistic_regression_model.pkl", "rb") as f:
-    model = pickle.load(f)
-
-# Initialize FastAPI app
 app = FastAPI()
 
-@app.get("/")
-def home():
-    return {"message": "Earthquake Prediction API is running!"}
+# Try loading the model with error handling
+try:
+    with open("logistic_regression_model.pkl", "rb") as f:
+        model = pickle.load(f)
+except FileNotFoundError:
+    model = None
+    print("Error: Model file not found. Make sure 'logistic_regression_model.pkl' is available.")
 
-@app.get("/predict")
-def predict(magnitude: float, depth: float, lat: float, lon: float):
-    # Prepare input as a NumPy array
-    test_input = np.array([[magnitude, depth, lat, lon]])
+# Define input schema for prediction
+class EarthquakeInput(BaseModel):
+    magnitude: float
+    depth: float
+    lat: float
+    lon: float
+
+@app.post("/predict")
+def predict(data: EarthquakeInput):
+    if model is None:
+        return {"error": "Model not loaded. Check server logs."}
+    
+    test_input = np.array([[data.magnitude, data.depth, data.lat, data.lon]])
     prediction = model.predict(test_input)
-
-    # Convert numerical prediction to label
     prediction_label = "Earthquake Expected" if prediction[0] == 1 else "No Earthquake"
-
+    
     return {"prediction": prediction_label}
+
+if __name__ == "__main__":
+    port = int(os.getenv("PORT", 8000))  # Use Railway-provided PORT or default to 8000
+    uvicorn.run(app, host="0.0.0.0", port=port)
