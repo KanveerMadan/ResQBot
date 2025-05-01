@@ -10,7 +10,7 @@ app = FastAPI()
 
 # Try loading the model with error handling
 try:
-    with open("logistic_regression_model.pkl", "rb") as f:
+    with open("logistic_regression24_model.pkl", "rb") as f:
         model = pickle.load(f)
 except FileNotFoundError:
     model = None
